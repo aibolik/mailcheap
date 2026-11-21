@@ -16,6 +16,7 @@ import { countReaders, getArchiveIssue, getArchiveNewsletter, listArchiveIssues 
 import { getArchiveUrls } from "@/lib/archive-hosts";
 import { getIssueDate } from "@/lib/archive-issues";
 import { getIssueSeo } from "@/lib/archive-seo";
+import { readerCopy } from "@/lib/reader-copy";
 import { cn } from "@/lib/utils";
 
 export const revalidate = 3600;
@@ -55,6 +56,7 @@ export default async function IssuePage({ params }) {
 		slug: newsletter.slug,
 		imageUrl: newsletter.imageUrl,
 		description: newsletter.description,
+		language: newsletter.language,
 	};
 
 	return (
@@ -71,7 +73,7 @@ export default async function IssuePage({ params }) {
 					<div className="mt-6 flex items-center justify-between gap-4">
 						<div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground tabular-nums">
 							{issue.author ? (
-								<BylineAuthor author={issue.author} />
+								<BylineAuthor author={issue.author} language={newsletter.language} />
 							) : (
 								<a
 									href={urls.author(author.slug)}
@@ -86,12 +88,13 @@ export default async function IssuePage({ params }) {
 									<span className="truncate">{author.name}</span>
 								</a>
 							)}
-							{date && <BadgeDate date={date} />}
-							{views > 0 && <BadgeViews views={views} />}
+							{date && <BadgeDate date={date} language={newsletter.language} />}
+							{views > 0 && <BadgeViews views={views} language={newsletter.language} />}
 						</div>
 						<LinksShare
 							url={urls.absolutePost(issue.archiveSlug)}
 							text={issue.subject}
+							language={newsletter.language}
 							className="-mr-2.5 shrink-0"
 						/>
 					</div>
@@ -117,12 +120,12 @@ export default async function IssuePage({ params }) {
 			{more.length > 0 && (
 				<section className="mx-auto max-w-5xl px-5 pt-20 pb-24">
 					<div className="mb-6 flex items-baseline justify-between gap-4 border-b border-border/60 pb-4">
-						<h2 className="text-sm font-medium text-muted-foreground">Keep reading</h2>
+						<h2 className="text-sm font-medium text-muted-foreground">{readerCopy(newsletter.language).archive.keepReading}</h2>
 						<a
 							href={urls.index}
 							className="text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground"
 						>
-							All issues →
+							{readerCopy(newsletter.language).archive.allIssuesLink}
 						</a>
 					</div>
 					<ol className="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowUpRight, Lock } from "lucide-react";
 import { getFieldPath, getSectionPath } from "@/lib/newsletter-sections";
 import { getNewsletterPagePath } from "@/lib/newsletters";
+import { readerCopy } from "@/lib/reader-copy";
 import { getFooterReason } from "@/lib/render-email";
 import { useHasRole } from "@/lib/use-team-role";
 import { cn } from "@/lib/utils";
@@ -31,7 +32,8 @@ export default function FooterEmail({ newsletter }) {
 		<footer className="px-5 pb-6 text-xs leading-relaxed text-muted-foreground [@media(pointer:fine)]:pl-12">
 			<div className="border-t border-border pt-5">
 				<p>
-					{getFooterReason(newsletter.name)} <span className="underline underline-offset-2">Unsubscribe</span>
+					{getFooterReason(newsletter.name, newsletter.language)}{" "}
+					<span className="underline underline-offset-2">{readerCopy(newsletter.language).footer.unsubscribe}</span>
 				</p>
 				{address && <p>{address}</p>}
 			</div>

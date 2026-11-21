@@ -68,6 +68,8 @@ const newsletterSchema = new mongoose.Schema(
 		},
 		// Its own HTML for the head of its website's pages, only ever sent on its own domain (lib/website-code.js).
 		customCode: { type: String },
+		// What readers see of the words MailCheap writes. Missing on a newsletter saved before this is English.
+		language: { type: String, enum: ["en", "ru"], default: "en" },
 		// New signups get an email with a link and only join once they click it (confirmed opt-in).
 		requireConfirmation: { type: Boolean, default: false },
 		// Checked when an issue is sent (lib/cleanup.js). Empty numbers use the newsletter's defaults.

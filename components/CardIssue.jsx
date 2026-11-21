@@ -26,7 +26,7 @@ export default function CardIssue({ issue, newsletter, href, isFeatured = false,
 				isEager={isEager}
 			/>
 			<div className="flex flex-col gap-2">
-				<MetaIssue issue={issue} />
+				<MetaIssue issue={issue} language={newsletter.language} />
 				<h3
 					className={cn(
 						"font-theme-heading text-balance decoration-foreground/30 underline-offset-4 group-hover:underline",
@@ -77,14 +77,14 @@ function ImageIssue({ issue, newsletter, sizes, isEager }) {
 	);
 }
 
-function MetaIssue({ issue }) {
+function MetaIssue({ issue, language }) {
 	const date = getIssueDate(issue);
 	const views = issue.webViews ?? 0;
 
 	return (
 		<p className="flex items-center gap-3 text-sm text-muted-foreground tabular-nums">
-			{date && <BadgeDate date={date} />}
-			{views > 0 && <BadgeViews views={views} isCompact />}
+			{date && <BadgeDate date={date} language={language} />}
+			{views > 0 && <BadgeViews views={views} isCompact language={language} />}
 		</p>
 	);
 }

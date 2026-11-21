@@ -17,6 +17,7 @@ function fullForm(section) {
 		name: "Field notes",
 		slug: "field-notes",
 		imageUrl: "https://cdn.example.com/logo.png",
+		language: "en",
 		fromName: "Jane",
 		fromEmail: "jane@example.com",
 		replyTo: "reply@example.com",
@@ -58,6 +59,7 @@ test("a section's page sends its own fields only, so saving it leaves the other 
 		name: "Field notes",
 		slug: "field-notes",
 		imageUrl: "https://cdn.example.com/logo.png",
+		language: "en",
 	});
 	assert.deepEqual(readSettingsForm(fullForm("sender")), {
 		fromName: "Jane",
@@ -102,7 +104,7 @@ test("a switch only counts on its own page: off there, untouched elsewhere", () 
 
 	const general = fullForm("general");
 	for (const key of ["archiveEnabled", "requireConfirmation", "cleanupEnabled", "welcomeEnabled"]) general.delete(key);
-	assert.deepEqual(Object.keys(readSettingsForm(general)), ["name", "slug", "imageUrl"]);
+	assert.deepEqual(Object.keys(readSettingsForm(general)), ["name", "slug", "imageUrl", "language"]);
 });
 
 test("a collapsed email section sends nothing of it, so what it saved stays", () => {

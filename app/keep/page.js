@@ -1,18 +1,24 @@
 import { Link2Off } from "lucide-react";
 import CardNotice from "@/components/CardNotice";
 import FormKeep from "@/components/FormKeep";
+import SetDocumentLang from "@/components/SetDocumentLang";
 import StyleTheme from "@/components/StyleTheme";
 import { getArchiveUrls } from "@/lib/archive-hosts";
 import { connectDb } from "@/lib/db";
 import { verifyKeepToken } from "@/lib/last-chance";
 import { findNewsletterAnywhere } from "@/lib/public-newsletters";
+import { readerCopy } from "@/lib/reader-copy";
+import { getReaderLanguage } from "@/lib/reader-language";
 
 // The URL carries the keep token: keep it out of search results and referrer headers.
-export const metadata = {
-	title: "Keep getting the newsletter",
-	robots: { index: false, follow: false },
-	referrer: "no-referrer",
-};
+const PRIVATE = { robots: { index: false, follow: false }, referrer: "no-referrer" };
+
+export async function generateMetadata({ searchParams }) {
+	const { token } = await searchParams;
+	const reference = verifyKeepToken(typeof token === "string" ? token : null);
+	const newsletter = reference ? await getNewsletter(reference.newsletterId) : null;
+	return { ...PRIVATE, title: readerCopy(newsletter?.language).keep.metaTitle };
+}
 
 export default async function KeepPage({ searchParams }) {
 	const { token } = await searchParams;
@@ -20,18 +26,23 @@ export default async function KeepPage({ searchParams }) {
 	const reference = verifyKeepToken(validToken);
 	const newsletter = reference ? await getNewsletter(reference.newsletterId) : null;
 
+	const copy = readerCopy(newsletter?.language).keep;
+	const lang = getReaderLanguage(newsletter);
+
 	return (
-		<main className="flex min-h-dvh items-center justify-center bg-background px-4 py-16">
+		<main lang={lang} className="flex min-h-dvh items-center justify-center bg-background px-4 py-16">
+			<SetDocumentLang language={newsletter?.language} />
 			<StyleTheme theme={newsletter?.theme} />
 			{newsletter ? (
 				<FormKeep
 					token={validToken}
 					newsletterName={newsletter.name}
 					archiveUrl={newsletter.archiveEnabled ? getArchiveUrls(newsletter).siteIndex : null}
+					language={newsletter.language}
 				/>
 			) : (
-				<CardNotice icon={Link2Off} title="This link doesn't work">
-					It may be older than 90 days. Sign up again to keep getting the newsletter.
+				<CardNotice icon={Link2Off} title={copy.invalidTitle}>
+					{copy.invalidBody}
 				</CardNotice>
 			)}
 		</main>

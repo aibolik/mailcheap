@@ -6,9 +6,11 @@ import { subscribe } from "@/app/archive/actions";
 import { Button } from "@/components/ui/button";
 import { storeValue, subscribedKey } from "@/lib/storage";
 import { cn } from "@/lib/utils";
+import { readerCopy } from "@/lib/reader-copy";
 import { SIGNUP_EVENT } from "@/lib/website-analytics";
 
-export default function FormSubscribe({ newsletterSlug, className }) {
+export default function FormSubscribe({ newsletterSlug, className, language }) {
+	const copy = readerCopy(language).signup;
 	const [state, action, isPending] = useActionState(subscribe, null);
 
 	useEffect(() => {
@@ -17,7 +19,7 @@ export default function FormSubscribe({ newsletterSlug, className }) {
 		window.dispatchEvent(new Event(SIGNUP_EVENT));
 	}, [state, newsletterSlug]);
 
-	if (state?.pending) return <CardConfirmEmail email={state.email} inbox={state.inbox} className={className} />;
+	if (state?.pending) return <CardConfirmEmail email={state.email} inbox={state.inbox} className={className} copy={copy} />;
 
 	if (state?.ok) {
 		return (
@@ -28,7 +30,7 @@ export default function FormSubscribe({ newsletterSlug, className }) {
 				<span className="grid size-6 place-items-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
 					<Check className="size-3.5 animate-icon-in" />
 				</span>
-				You&apos;re in. The next issue lands in your inbox.
+				{copy.archiveSuccess}
 			</p>
 		);
 	}
@@ -45,12 +47,12 @@ export default function FormSubscribe({ newsletterSlug, className }) {
 					name="email"
 					required
 					autoComplete="email"
-					placeholder="you@example.com"
-					aria-label="Email"
+					placeholder={copy.placeholder}
+					aria-label={copy.emailLabel}
 					className="h-9 min-w-0 flex-1 bg-transparent px-2.5 text-base outline-none placeholder:text-muted-foreground"
 				/>
 				<Button type="submit" disabled={isPending} className="h-9 min-w-24 rounded-md px-4">
-					{isPending ? <Loader2 className="animate-spin" /> : "Subscribe"}
+					{isPending ? <Loader2 className="animate-spin" /> : copy.button}
 				</Button>
 			</div>
 			{state?.error && (
@@ -64,7 +66,7 @@ export default function FormSubscribe({ newsletterSlug, className }) {
 
 // Until they click the link, they get nothing: say so plainly and put their inbox one tap away. Amber over the page's
 // own color, so it reads on every newsletter theme.
-function CardConfirmEmail({ email, inbox, className }) {
+function CardConfirmEmail({ email, inbox, className, copy }) {
 	return (
 		<div
 			role="status"
@@ -79,21 +81,20 @@ function CardConfirmEmail({ email, inbox, className }) {
 					<span className="absolute -top-0.5 -right-0.5 size-3 animate-pulse rounded-full bg-red-500 ring-2 ring-[color-mix(in_oklab,var(--color-amber-500)_12%,var(--background))]" />
 				</span>
 				<div className="min-w-0">
-					<p className="font-semibold text-foreground">You&apos;re not subscribed yet</p>
+					<p className="font-semibold text-foreground">{copy.notYet}</p>
 					<p className="mt-1 text-sm leading-relaxed text-pretty text-foreground/75">
-						Click the link we just sent to <strong className="font-semibold break-words text-foreground">{email}</strong>.
-						Until you do, you won&apos;t get a single issue.
+						{copy.notYetBefore}<strong className="font-semibold break-words text-foreground">{email}</strong>{copy.notYetAfter}
 					</p>
 				</div>
 			</div>
 			{inbox && (
 				<Button asChild size="lg" className="mt-4 w-full">
 					<a href={inbox.url} target="_blank" rel="noopener noreferrer">
-						Open {inbox.name}
+						{copy.openInbox(inbox.name)}
 					</a>
 				</Button>
 			)}
-			<p className="mt-3 text-xs text-foreground/60">Not in your inbox? Check Promotions or Spam.</p>
+			<p className="mt-3 text-xs text-foreground/60">{copy.checkSpam}</p>
 		</div>
 	);
 }

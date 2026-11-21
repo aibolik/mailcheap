@@ -20,7 +20,10 @@ import {
 } from "@/lib/signup-form";
 import { MAX_FORM_AGE_MS, MIN_FILL_MS, createDoneToken, readFormToken } from "@/lib/signup-form-token";
 import { addSignup } from "@/lib/signups";
+import { localizeKnownError } from "@/lib/reader-copy";
+import { getReaderLanguage } from "@/lib/reader-language";
 import { isObjectIdString, isPlainObject, normalizeEmail } from "@/lib/validation";
+import Newsletter from "@/models/Newsletter";
 
 // Signups from the forms owners paste on their own sites (lib/signup-form.js). The framed form posts JSON from its own
 // page, on MailCheap's host, where Vercel BotID proves a browser sent it; the plain HTML form posts from anywhere and
@@ -55,19 +58,22 @@ export function OPTIONS() {
 export async function POST(request, { params }) {
 	const { id } = await params;
 	const reply = createReply(request, id);
+	const language = isObjectIdString(id) ? await signupLanguage(id) : "en";
+	const say = (status, message) => reply.error(status, localizeKnownError(message, language));
 	const fields = await readFields(request);
-	if (!fields) return reply.error(400, "Enter a valid email");
+	if (!fields) return say(400, "Enter a valid email");
 	// People never see this field; bots fill in every input they find.
 	if (fields.website) return reply.done({ result: "subscribed" });
-	if (!isObjectIdString(id)) return reply.error(404, FORM_OFF);
+	if (!isObjectIdString(id)) return say(404, FORM_OFF);
 	if (await isRateLimited({ ...PER_IP, key: getClientIp(request.headers) })) {
-		return reply.error(429, "Too many signups from your network. Try again in a few minutes.");
+		return say(429, "Too many signups from your network. Try again in a few minutes.");
 	}
 
 	await connectDb();
 	const { newsletter, signupScale } = (await findSignupNewsletterWithScale({ _id: id })) ?? {};
-	const settings = toSignupFormSettings(newsletter?.signupForm);
-	if (!newsletter || !settings.enabled) return reply.error(404, FORM_OFF);
+	const settings = toSignupFormSettings(newsletter?.signupForm, { language: newsletter?.language });
+	const tell = (status, message) => reply.error(status, localizeKnownError(message, newsletter?.language ?? language));
+	if (!newsletter || !settings.enabled) return tell(404, FORM_OFF);
 
 	// The framed form names the page it was on in its token, from when it loaded; for the plain form, the browser names it.
 	// Every browser sends an Origin with a form posted from another site: without one, a script is posting.
@@ -75,30 +81,30 @@ export async function POST(request, { params }) {
 	let formToken = null;
 	if (fields.token) {
 		formToken = readFormToken(fields.token, { newsletterId: id });
-		if (!formToken || formToken.age > MAX_FORM_AGE_MS) return reply.error(400, "This form expired. Reload the page and try again.");
-		if (formToken.age < MIN_FILL_MS) return reply.error(400, "One second, then try again.");
+		if (!formToken || formToken.age > MAX_FORM_AGE_MS) return tell(400, "This form expired. Reload the page and try again.");
+		if (formToken.age < MIN_FILL_MS) return tell(400, "One second, then try again.");
 		// With sites listed, BotID is what stops a script that names one of them, so a check that fails refuses the signup.
 		const failClosed = settings.allowedDomains.length > 0;
-		if (await isBotRequest("signup from a form on another site", { failClosed })) return reply.error(403, NOT_A_BROWSER);
+		if (await isBotRequest("signup from a form on another site", { failClosed })) return tell(403, NOT_A_BROWSER);
 		host = getHost(formToken.origin);
 	} else {
 		if (settings.allowedDomains.length) {
 			await alertPlainFormOff(newsletter);
-			return reply.error(403, OTHER_SITE);
+			return tell(403, OTHER_SITE);
 		}
 		const origin = request.headers.get("origin");
-		if (origin === null) return reply.error(400, NOT_A_BROWSER);
+		if (origin === null) return tell(400, NOT_A_BROWSER);
 		host = getHost(origin) ?? getHost(request.headers.get("referer"));
 	}
-	if (!isAllowedHost(host, settings.allowedDomains)) return reply.error(403, OTHER_SITE);
+	if (!isAllowedHost(host, settings.allowedDomains)) return tell(403, OTHER_SITE);
 
 	const email = normalizeEmail(fields.email);
-	if (!email) return reply.error(400, "Enter a valid email");
+	if (!email) return tell(400, "Enter a valid email");
 	if (await isRateLimited({ ...PER_EMAIL, key: hashEmail(email) })) {
-		return reply.error(429, "This address signed up too many times today. Try again tomorrow.");
+		return tell(429, "This address signed up too many times today. Try again tomorrow.");
 	}
 	const problem = await getSignupProblem(email);
-	if (problem) return reply.error(400, problem);
+	if (problem) return tell(400, problem);
 
 	// The script form's limit grows with the plan; the plain form, which can't prove a browser sent it, keeps its own.
 	const isPlain = !fields.token;
@@ -106,11 +112,11 @@ export async function POST(request, { params }) {
 	for (const limit of isPlain ? [PER_NEWSLETTER_PLAIN, PER_NEWSLETTER_PLAIN_DAILY] : [perNewsletter]) {
 		if (!(await isRateLimited({ ...limit, key: id }))) continue;
 		await alertFlood(newsletter, { limit, isPlain });
-		return reply.error(429, "This form is busy. Try again in a few minutes.");
+		return tell(429, "This form is busy. Try again in a few minutes.");
 	}
 	// Last, so a typo doesn't use it up: the limiter counts atomically, so two posts of one token can't both get through.
 	if (formToken && (await isRateLimited({ ...PER_TOKEN, key: formToken.id }))) {
-		return reply.error(400, "This form was already used. Reload the page to sign up another address.");
+		return tell(400, "This form was already used. Reload the page to sign up another address.");
 	}
 
 	const { isPending, inbox } = await addSignup({
@@ -195,6 +201,18 @@ async function readFields(request) {
 }
 
 // The limiter keys addresses by a keyed hash, so the rate limit store never holds them.
+// Before the newsletter is loaded, so a limit that fires first still answers in its language. Invalid ids stay English.
+async function signupLanguage(id) {
+	try {
+		await connectDb();
+		const newsletter = await Newsletter.findOne({ _id: id }).setOptions({ crossAccount: true }).select("language").lean();
+		return getReaderLanguage(newsletter);
+	} catch (error) {
+		console.error("[embed] Could not read the newsletter's language:", error.message);
+		return "en";
+	}
+}
+
 function hashEmail(email) {
 	return crypto.createHmac("sha256", getAppSecret()).update(`embed-email:${email}`).digest("base64url").slice(0, 32);
 }

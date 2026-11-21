@@ -3,6 +3,7 @@
 import { createContext, use, useMemo, useState } from "react";
 import PitchSubscribe from "@/components/PitchSubscribe";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { getReaderLanguage } from "@/lib/reader-language";
 import { storeValue, subscribeSnoozedKey } from "@/lib/storage";
 
 const SubscribeContext = createContext(null);
@@ -13,7 +14,8 @@ export function useSubscribe() {
 
 export default function ProviderSubscribe({ newsletter, readers, children }) {
 	const [openedBy, setOpenedBy] = useState(null);
-	const value = useMemo(() => ({ open: (source = "reader") => setOpenedBy(source) }), []);
+	const language = getReaderLanguage(newsletter);
+	const value = useMemo(() => ({ open: (source = "reader") => setOpenedBy(source), language }), [language]);
 
 	function onOpenChange(open) {
 		if (open) return;

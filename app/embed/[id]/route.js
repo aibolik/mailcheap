@@ -10,7 +10,10 @@ import {
 	isAllowedHost,
 	toSignupFormSettings,
 } from "@/lib/signup-form";
+import { localizeKnownError } from "@/lib/reader-copy";
+import { getReaderLanguage } from "@/lib/reader-language";
 import { renderFormPage, renderNoticePage } from "@/lib/signup-form-page";
+import Newsletter from "@/models/Newsletter";
 import { createFormToken } from "@/lib/signup-form-token";
 import { isObjectIdString } from "@/lib/validation";
 
@@ -24,22 +27,36 @@ export async function GET(request, { params }) {
 	const { id } = await params;
 	if (!isObjectIdString(id)) return respond(renderNoticePage("This signup form doesn't exist."), 404);
 	const visitor = getClientIp(request.headers);
+	const language = await frameLanguage(id);
 	if (await isRateLimited({ ...SIGNUP_FORM_RATE_LIMITS.frameLoads, key: `${id}:${visitor}` })) {
-		return respond(renderNoticePage("Too many visits from your network. Try again in a few minutes."), 429);
+		return respond(renderNoticePage(localizeKnownError("Too many visits from your network. Try again in a few minutes.", language), language), 429);
 	}
 
 	await connectDb();
 	const newsletter = await findSignupNewsletter({ _id: id });
-	const settings = toSignupFormSettings(newsletter?.signupForm);
-	if (!newsletter || !settings.enabled) return respond(renderNoticePage("Signups are closed for now."), 404);
+	const settings = toSignupFormSettings(newsletter?.signupForm, { language: newsletter?.language });
+	const lang = getReaderLanguage(newsletter ?? { language });
+	if (!newsletter || !settings.enabled) return respond(renderNoticePage(localizeKnownError("Signups are closed for now.", lang), lang), 404);
 
 	const referer = request.headers.get("referer");
 	const host = getHost(referer);
-	if (!isAllowedHost(host, settings.allowedDomains)) return respond(renderNoticePage("This form doesn't work on this site."), 403);
+	if (!isAllowedHost(host, settings.allowedDomains)) {
+		return respond(renderNoticePage(localizeKnownError("This form doesn't work on this site.", lang), lang), 403);
+	}
 
 	const token = createFormToken({ newsletterId: id, origin: host ? new URL(referer).origin : "" });
 	const html = renderFormPage({ newsletter, settings, endpoint: getSignupFormPaths(id).endpoint, token, botId: isBotIdEnabled() });
 	return respond(html, 200, getFramePolicy(settings.allowedDomains));
+}
+
+async function frameLanguage(id) {
+	try {
+		await connectDb();
+		const newsletter = await Newsletter.findOne({ _id: id }).setOptions({ crossAccount: true }).select("language").lean();
+		return getReaderLanguage(newsletter);
+	} catch {
+		return "en";
+	}
 }
 
 function respond(html, status = 200, policy = null) {
