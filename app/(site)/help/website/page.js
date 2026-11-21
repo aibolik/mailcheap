@@ -45,7 +45,8 @@ export default function WebsitePage() {
 			</p>
 			<p>
 				Its fonts, colors and shapes are your newsletter&apos;s theme, as in your emails. Readers get its light or dark colors, the
-				ones their device uses, and switch between System, Light and Dark at the bottom of every page.{" "}
+				ones their device uses, and switch between System, Light and Dark at the bottom of every page. Those labels follow the{" "}
+				newsletter&apos;s <Link href={getHelpHref("newsletters", "general")}>language</Link>.{" "}
 				<Link href={getHelpHref("design", "dark-mode")}>Design and themes</Link>
 			</p>
 

@@ -22,7 +22,7 @@ export default function FooterArchive({ newsletter, indexHref }) {
 				<p className="text-xs text-muted-foreground tabular-nums">
 					© {currentYear()} {newsletter.name}
 				</p>
-				<PickerMode />
+				<PickerMode language={newsletter.language} />
 			</div>
 		</footer>
 	);

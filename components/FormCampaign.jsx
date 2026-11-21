@@ -678,6 +678,7 @@ export default function FormCampaign({
 				subject={deferredValues.subject}
 				previewText={deferredValues.previewText}
 				newsletterId={newsletter._id}
+				language={newsletter.language}
 				contactFields={contactFields}
 				sections={sectionPreview}
 			/>

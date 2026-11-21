@@ -54,6 +54,10 @@ export default function NewslettersPage() {
 				<li>
 					<strong>Image</strong>: a square logo, 128×128 pixels or larger, for your website and the pictures it shows when shared.
 				</li>
+				<li>
+					<strong>Language</strong>: English or Russian, for the words MailCheap writes for readers. What you write stays as you wrote it.{" "}
+					<LinkApp href="/newsletters/general">General</LinkApp>
+				</li>
 			</ul>
 
 			<h2 id="sender">Sender</h2>
@@ -101,7 +105,7 @@ export default function NewslettersPage() {
 				list.
 			</p>
 			<p>
-				The built-in confirmation email follows your newsletter&apos;s name and description. On the{" "}
+				The built-in confirmation email follows your newsletter&apos;s name, description and language. On the{" "}
 				<LinkApp href="/newsletters/signups">Confirm signups page</LinkApp>, you can write your own subject, preview text and content,
 				in your words or your readers&apos; language, in the same <Link href={getHelpHref("writing", "editor")}>editor</Link> as
 				your issues. Keep its button: each new subscriber gets their own link in it, and its toolbar says Confirms their

@@ -5,12 +5,14 @@ import { Link2Off, Loader2, MailCheck } from "lucide-react";
 import { confirmSubscription } from "@/app/confirm/actions";
 import CardNotice from "@/components/CardNotice";
 import { Button } from "@/components/ui/button";
+import { readerCopy } from "@/lib/reader-copy";
 
 // Confirms once the page's script runs, so a link scanner that only loads the page doesn't. No <form>: posted without
 // the script from this page, which sends no referrer, it would come with Origin: null, which Next.js refuses with an
 // error, and some scanners post forms that way.
-export default function FormConfirm({ token, newsletterName, fromName, fromEmail, archiveUrl }) {
+export default function FormConfirm({ token, newsletterName, fromName, fromEmail, archiveUrl, language }) {
 	const [state, confirm, isPending] = useActionState(confirmSubscription.bind(null, token), null);
+	const copy = readerCopy(language).confirm;
 
 	useEffect(() => {
 		startTransition(confirm);
@@ -18,13 +20,16 @@ export default function FormConfirm({ token, newsletterName, fromName, fromEmail
 
 	if (state?.ok) {
 		return (
-			<CardNotice icon={MailCheck} tone="success" title="You're in">
-				The next issue of {newsletterName} comes from{" "}
+			<CardNotice icon={MailCheck} tone="success" title={copy.successTitle}>
+				{copy.successBeforeName}
+				{newsletterName}
+				{copy.successBeforeFrom}
 				<span className="font-medium text-foreground">{fromName || fromEmail}</span>
-				{fromName && ` (${fromEmail})`}. If it lands in Promotions, drag it to Primary.
+				{fromName && ` (${fromEmail})`}
+				{copy.successAfterFrom}
 				{archiveUrl && (
 					<Button asChild size="lg" variant="outline" className="mt-6 w-full">
-						<a href={archiveUrl}>Read past issues</a>
+						<a href={archiveUrl}>{copy.archive}</a>
 					</Button>
 				)}
 			</CardNotice>
@@ -33,21 +38,17 @@ export default function FormConfirm({ token, newsletterName, fromName, fromEmail
 
 	if (state?.error) {
 		return (
-			<CardNotice icon={Link2Off} title="This link doesn't work">
-				It may be older than 30 days. Sign up again and use the newest confirmation email.
+			<CardNotice icon={Link2Off} title={copy.invalidTitle}>
+				{copy.invalidBody}
 			</CardNotice>
 		);
 	}
 
 	return (
-		<CardNotice
-			icon={isPending ? Loader2 : MailCheck}
-			spin={isPending}
-			title={`Confirm your subscription to ${newsletterName}`}
-		>
-			One click and the next issue lands in your inbox.
+		<CardNotice icon={isPending ? Loader2 : MailCheck} spin={isPending} title={copy.pendingTitle(newsletterName)}>
+			{copy.pendingBody}
 			<Button size="lg" disabled={isPending} onClick={() => startTransition(confirm)} className="mt-6 w-full">
-				{isPending ? "Confirming…" : "Confirm my subscription"}
+				{isPending ? copy.confirming : copy.button}
 			</Button>
 		</CardNotice>
 	);

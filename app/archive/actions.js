@@ -13,8 +13,11 @@ import { resolveArchiveHost } from "@/lib/host-routing";
 import { getInbox } from "@/lib/inbox-links";
 import { findSignupNewsletterWithScale } from "@/lib/public-newsletters";
 import { getClientIp, isRateLimited } from "@/lib/rate-limit";
+import { localizeKnownError } from "@/lib/reader-copy";
+import { getReaderLanguage } from "@/lib/reader-language";
 import { queueConfirmationEmail, queueWelcomeEmail } from "@/lib/sending";
 import { normalizeEmail } from "@/lib/validation";
+import Newsletter from "@/models/Newsletter";
 
 const PER_IP = { name: "subscribe-ip", limit: 5, window: "10 m" };
 // Only alerts: refusing signups past a shared limit would let one flooder block every real signup.
@@ -24,29 +27,29 @@ const PER_NEWSLETTER = { name: "subscribe-newsletter", limit: 300, window: "10 m
 const NOT_TAKING_SIGNUPS = "This newsletter is not taking signups";
 
 export async function subscribe(_state, formData) {
+	const slug = String(formData.get("newsletter") ?? "");
 	// People never see this field; bots fill in every input they find.
 	if (formData.get("website")) return { ok: true };
 
 	const email = normalizeEmail(formData.get("email"));
-	if (!email) return { error: "Enter a valid email" };
+	if (!email) return fail(slug, "Enter a valid email");
 
 	// Before the rate limit, so a script doesn't use up the signups of the network it shares with readers.
-	if (await isBotRequest("signup")) return { error: "Couldn't sign you up. Try again in a minute." };
+	if (await isBotRequest("signup")) return fail(slug, "Couldn't sign you up. Try again in a minute.");
 	const requestHeaders = await headers();
 	if (await isRateLimited({ ...PER_IP, key: getClientIp(requestHeaders) })) {
-		return { error: "Too many signups from your network. Try again in a few minutes." };
+		return fail(slug, "Too many signups from your network. Try again in a few minutes.");
 	}
 	const emailProblem = await getSignupProblem(email);
-	if (emailProblem) return { error: emailProblem };
+	if (emailProblem) return fail(slug, emailProblem);
 
-	const slug = String(formData.get("newsletter") ?? "");
 	// A newsletter's website takes its own signups only, so a script on one can't sign people up to another.
 	const site = await resolveArchiveHost(requestHeaders.get("host"));
-	if (site.isArchiveHost && site.slug !== slug) return { error: NOT_TAKING_SIGNUPS };
+	if (site.isArchiveHost && site.slug !== slug) return fail(slug, NOT_TAKING_SIGNUPS);
 
 	await connectDb();
 	const found = await findSignupNewsletterWithScale({ slug, archiveEnabled: true });
-	if (!found) return { error: NOT_TAKING_SIGNUPS };
+	if (!found) return fail(slug, NOT_TAKING_SIGNUPS);
 	const { newsletter, signupScale } = found;
 
 	const perNewsletter = { ...PER_NEWSLETTER, limit: PER_NEWSLETTER.limit * signupScale };
@@ -80,4 +83,19 @@ export async function subscribe(_state, formData) {
 	}
 	if (!isPending) return { ok: true };
 	return { ok: true, pending: true, email, inbox: getInbox({ email, fromEmail: newsletter.fromEmail }) };
+}
+
+// The checks above answer in English. Readers of a Russian newsletter see that language; an unknown slug stays English.
+async function fail(slug, message) {
+	let language = "en";
+	if (slug) {
+		try {
+			await connectDb();
+			const newsletter = await Newsletter.findOne({ slug }).setOptions({ crossAccount: true }).select("language").lean();
+			language = getReaderLanguage(newsletter);
+		} catch (error) {
+			console.error("[subscribe] Could not read the newsletter's language:", error.message);
+		}
+	}
+	return { error: localizeKnownError(message, language) };
 }

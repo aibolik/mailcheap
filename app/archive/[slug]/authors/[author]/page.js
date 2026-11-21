@@ -7,7 +7,7 @@ import { getArchiveAuthor } from "@/lib/archive-author";
 import { getArchiveNewsletter, listArchiveIssues } from "@/lib/archive-data";
 import { getArchiveUrls } from "@/lib/archive-hosts";
 import { getAuthorSeo } from "@/lib/archive-seo";
-import { formatNumber } from "@/lib/format";
+import { readerCopy } from "@/lib/reader-copy";
 
 export const revalidate = 3600;
 
@@ -60,14 +60,15 @@ export default async function AuthorPage({ params }) {
 						</p>
 					)}
 					<p style={{ "--stagger": 3 }} className="mt-3 text-sm text-muted-foreground tabular-nums animate-enter">
-						Writes{" "}
+						{readerCopy(newsletter.language).archive.writes}{" "}
 						<a
 							href={urls.index}
 							className="font-medium text-foreground underline decoration-foreground/30 underline-offset-4 transition-colors duration-150 hover:decoration-foreground"
 						>
 							{newsletter.name}
-						</a>{" "}
-						· {formatNumber(issues.length)} issues
+						</a>
+						{" · "}
+						{readerCopy(newsletter.language).archive.issueCount(issues.length)}
 					</p>
 					<div style={{ "--stagger": 4 }} className="mt-6 animate-enter">
 						<LinksSocial links={newsletter.socialLinks} />
@@ -78,7 +79,7 @@ export default async function AuthorPage({ params }) {
 			{issues.length > 0 && (
 				<section className="mx-auto max-w-5xl px-5 pb-24">
 					<h2 className="mb-6 border-b border-border/60 pb-4 text-sm font-medium text-muted-foreground">
-						Issues by {firstName}
+						{readerCopy(newsletter.language).archive.issuesBy(firstName)}
 					</h2>
 					<ol className="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
 						{issues.map((issue, index) => (

@@ -39,7 +39,7 @@ export default function FormEmbed({ newsletter, appUrl, hasBotCheck = true }) {
 	const [draft, setDraft] = useState(saved);
 	const [savedAt, setSavedAt] = useState(null);
 	const [isSaving, startSaving] = useTransition();
-	const settings = toSignupFormSettings(toInput(draft, newsletter));
+	const settings = toSignupFormSettings(toInput(draft, newsletter), { language: newsletter.language });
 	const code = getEmbedCode({ appUrl, newsletterId: newsletter._id, settings, theme: newsletter.theme, newsletter });
 	const prompt = getAgentPrompt({ appUrl, newsletterId: newsletter._id, newsletter, settings, code, isOn: saved.enabled, hasPlan });
 
@@ -296,7 +296,7 @@ function CodeSignupForm({ code, prompt }) {
 
 // The headline's fields start from what the card shows, so the newsletter's name and description are there to edit.
 function toDraft(signupForm, newsletter) {
-	const { allowedDomains, ...settings } = toSignupFormSettings(signupForm);
+	const { allowedDomains, ...settings } = toSignupFormSettings(signupForm, { language: newsletter.language });
 	return { ...settings, ...getSignupFormHeading(settings, newsletter), domains: allowedDomains.join("\n") };
 }
 

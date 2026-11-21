@@ -133,8 +133,8 @@ export default function FormNewsletter({
 
 	// What the newsletter's own emails are previewed in (components/EditorEmail.jsx).
 	const previewNewsletter = useMemo(
-		() => ({ name: draft.name, postalAddress: draft.postalAddress, theme: newsletter.theme }),
-		[draft.name, draft.postalAddress, newsletter.theme]
+		() => ({ name: draft.name, postalAddress: draft.postalAddress, theme: newsletter.theme, language: draft.language }),
+		[draft.name, draft.postalAddress, draft.language, newsletter.theme]
 	);
 	const form = { draft, setDraft, set, update, newsletter, sender, previewNewsletter, contactFields, discardCount, isCloud };
 
@@ -181,7 +181,7 @@ export default function FormNewsletter({
 
 function SectionGeneral({ draft, setDraft, set, newsletter, sharedDomain, appUrl, discardCount }) {
 	const slugId = useId();
-	const { name, slug, imageUrl } = draft;
+	const { name, slug, imageUrl, language } = draft;
 	const savedSlug = newsletter.slug ?? "";
 	const slugCheck = useSlugCheck({ slug, savedSlug, newsletterId: newsletter._id });
 	const isShared = Boolean(sharedDomain) && draft.fromDomain === sharedDomain;
@@ -235,6 +235,18 @@ function SectionGeneral({ draft, setDraft, set, newsletter, sharedDomain, appUrl
 						/>
 					</span>
 				)}
+			</Field>
+			<Field label="Language">
+				<Select value={language} onValueChange={(value) => set("language", value)}>
+					<SelectTrigger className="w-full" aria-label="Language">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="en">English</SelectItem>
+						<SelectItem value="ru">Russian</SelectItem>
+					</SelectContent>
+				</Select>
+				<input type="hidden" name="language" value={language} />
 			</Field>
 			<Field label="Image" hint="Square logo, 128×128 or larger">
 				<InputImage
@@ -357,10 +369,13 @@ function SectionSignups({ draft, setDraft, set, newsletter, sender, previewNewsl
 	const [version, setVersion] = useState(0);
 	const isWelcomeReplaced = isConfirmationRequired && !newsletter.requireConfirmation && Boolean(newsletter.welcome?.enabled);
 	const confirmation = useMemo(
-		() => getDraftConfirmation({ name, description, confirmationEdits }, newsletter),
+		() => getDraftConfirmation({ name, description, confirmationEdits, language: newsletter.language }, newsletter),
 		[name, description, confirmationEdits, newsletter]
 	);
-	const builtIn = useMemo(() => getBuiltInConfirmation({ name, description }), [name, description]);
+	const builtIn = useMemo(
+		() => getBuiltInConfirmation({ name, description, language: newsletter.language }),
+		[name, description, newsletter.language]
+	);
 	const changeConfirmation = useCallback(
 		(changes) => setDraft((current) => ({ ...current, confirmationEdits: { ...getDraftConfirmation(current, newsletter), ...changes } })),
 		[setDraft, newsletter]
@@ -436,7 +451,7 @@ function SectionWelcome({
 	const changeWelcome = useCallback((changes) => setDraft((current) => ({ ...current, welcome: { ...current.welcome, ...changes } })), [setDraft]);
 
 	function switchWelcome(isEnabled) {
-		const next = isEnabled ? prefillWelcome(welcome, { name: draft.name, description: draft.description }) : welcome;
+		const next = isEnabled ? prefillWelcome(welcome, { name: draft.name, description: draft.description, language: newsletter.language }) : welcome;
 		setDraft((current) => ({ ...current, isWelcomeEnabled: isEnabled, welcome: next }));
 		if (next !== welcome) setVersion((count) => count + 1);
 	}
@@ -512,8 +527,11 @@ function SectionCleanup({ draft, setDraft, set, newsletter, sender, previewNewsl
 	const { name, isCleanupEnabled, cleanup, lastChanceEdits } = draft;
 	const savedCleanup = getCleanupSettings(newsletter);
 	const [version, setVersion] = useState(0);
-	const lastChance = useMemo(() => getDraftLastChance({ name, lastChanceEdits }, newsletter), [name, lastChanceEdits, newsletter]);
-	const builtIn = useMemo(() => getBuiltInLastChance({ name }), [name]);
+	const lastChance = useMemo(
+		() => getDraftLastChance({ name, lastChanceEdits, language: newsletter.language }, newsletter),
+		[name, lastChanceEdits, newsletter]
+	);
+	const builtIn = useMemo(() => getBuiltInLastChance({ name, language: newsletter.language }), [name, newsletter.language]);
 	const changeLastChance = useCallback(
 		(changes) => setDraft((current) => ({ ...current, lastChanceEdits: { ...getDraftLastChance(current, newsletter), ...changes } })),
 		[setDraft, newsletter]

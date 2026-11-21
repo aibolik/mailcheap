@@ -7,7 +7,7 @@ import ScriptJsonLd from "@/components/ScriptJsonLd";
 import { countReaders, getArchiveNewsletter, listArchiveIssues } from "@/lib/archive-data";
 import { getArchiveUrls } from "@/lib/archive-hosts";
 import { getHomeSeo } from "@/lib/archive-seo";
-import { formatNumber } from "@/lib/format";
+import { readerCopy } from "@/lib/reader-copy";
 import { cn } from "@/lib/utils";
 
 export const revalidate = 3600;
@@ -61,12 +61,12 @@ export default async function ArchivePage({ params }) {
 						style={{ "--stagger": 3 }}
 						className="mt-8 w-full max-w-md scroll-mt-24 animate-enter"
 					>
-						<FormSubscribe newsletterSlug={newsletter.slug} />
+						<FormSubscribe newsletterSlug={newsletter.slug} language={newsletter.language} />
 					</div>
 					<div style={{ "--stagger": 4 }} className="mt-4 flex flex-col items-center gap-4 animate-enter">
 						{readers >= 100 && (
 							<p className="text-sm text-muted-foreground tabular-nums">
-								Join {formatNumber(readers)} readers. Free, unsubscribe anytime.
+								{readerCopy(newsletter.language).archive.joinLine(readers)}
 							</p>
 						)}
 						<LinksSocial links={newsletter.socialLinks} />
@@ -76,7 +76,7 @@ export default async function ArchivePage({ params }) {
 
 			{pinned.length > 0 && (
 				<section style={{ "--stagger": 5 }} className={cn("mx-auto max-w-5xl px-5 animate-enter", rest.length === 0 && "pb-24")}>
-					<h2 className="mb-6 text-sm font-medium text-muted-foreground">Featured</h2>
+					<h2 className="mb-6 text-sm font-medium text-muted-foreground">{readerCopy(newsletter.language).archive.featured}</h2>
 					<ol className="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
 						{pinned.map((issue, index) => (
 							<li key={issue._id.toString()}>
@@ -94,7 +94,7 @@ export default async function ArchivePage({ params }) {
 
 			{latest && (
 				<section style={{ "--stagger": 5 }} className={cn("mx-auto max-w-5xl px-5 animate-enter", rest.length === 0 && "pb-24")}>
-					<h2 className="mb-4 text-sm font-medium text-muted-foreground">Latest issue</h2>
+					<h2 className="mb-4 text-sm font-medium text-muted-foreground">{readerCopy(newsletter.language).archive.latest}</h2>
 					<CardIssue
 						issue={latest}
 						newsletter={newsletter}
@@ -108,7 +108,7 @@ export default async function ArchivePage({ params }) {
 			{rest.length > 0 && (
 				<section className="mx-auto max-w-5xl px-5 pt-20 pb-24">
 					<h2 className="mb-6 border-b border-border/60 pb-4 text-sm font-medium text-muted-foreground">
-						All issues
+						{readerCopy(newsletter.language).archive.allIssues}
 					</h2>
 					<ol className="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
 						{rest.map((issue) => (

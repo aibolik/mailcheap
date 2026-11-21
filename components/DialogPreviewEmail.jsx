@@ -74,13 +74,14 @@ function Stage({
 	contact,
 	onContactChange,
 	onClose,
+	language,
 }) {
 	const { html, subject, previewText } = useMemo(() => {
 		const source = sections ? sections.getHtml(contact ?? sections.sample) : emailHtml;
 		const email = { html: source, subject: emailSubject, previewText: emailPreviewText };
 		// The readers a section names are all called Jane.
-		return newsletterId ? fillForReader(email, contact && !contact.isGroup ? contact : SAMPLE_READER, contactFields) : email;
-	}, [emailHtml, emailSubject, emailPreviewText, newsletterId, contact, contactFields, sections]);
+		return newsletterId ? fillForReader(email, contact && !contact.isGroup ? contact : SAMPLE_READER, contactFields, language) : email;
+	}, [emailHtml, emailSubject, emailPreviewText, newsletterId, contact, contactFields, sections, language]);
 	const [device, setDevice] = useState(() => (window.matchMedia(SMALL_SCREEN).matches ? "mobile" : "desktop"));
 	const [space, setSpace] = useState(null);
 	const [hasOpenedEmail, setHasOpenedEmail] = useState(false);

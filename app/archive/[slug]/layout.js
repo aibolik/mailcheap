@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import FooterArchive from "@/components/FooterArchive";
 import HeaderArchive from "@/components/HeaderArchive";
 import ProviderSubscribe from "@/components/ProviderSubscribe";
+import SetDocumentLang from "@/components/SetDocumentLang";
 import ScriptBotId from "@/components/ScriptBotId";
 import ScriptWebsiteAnalytics from "@/components/ScriptWebsiteAnalytics";
 import ScriptWebsiteCode from "@/components/ScriptWebsiteCode";
@@ -10,6 +11,7 @@ import { countReaders, getArchiveNewsletter } from "@/lib/archive-data";
 import { getArchiveUrls } from "@/lib/archive-hosts";
 import { BOTID_WEBSITE, isBotIdEnabled } from "@/lib/bot-check";
 import { getAppHost, getSharedDomain } from "@/lib/config";
+import { getReaderLanguage } from "@/lib/reader-language";
 import { getOwnDomain, getWebsiteAnalytics } from "@/lib/website-analytics";
 
 export default async function ArchiveLayout({ children, params }) {
@@ -26,15 +28,17 @@ export default async function ArchiveLayout({ children, params }) {
 		slug: newsletter.slug,
 		imageUrl: newsletter.imageUrl,
 		description: newsletter.description,
+		language: newsletter.language,
 	};
 
 	return (
 		<ProviderSubscribe newsletter={pitch} readers={readers}>
+			<SetDocumentLang language={newsletter.language} />
 			<StyleTheme theme={newsletter.theme} />
 			{isBotIdEnabled() && <ScriptBotId protect={BOTID_WEBSITE} />}
 			{analytics && <ScriptWebsiteAnalytics analytics={analytics} />}
 			{newsletter.customCode && ownDomain && <ScriptWebsiteCode ownDomain={ownDomain} />}
-			<div className="flex min-h-dvh flex-col">
+			<div lang={getReaderLanguage(newsletter)} className="flex min-h-dvh flex-col">
 				<HeaderArchive newsletter={newsletter} indexHref={index} />
 				<main className="flex-1">{children}</main>
 				<FooterArchive newsletter={newsletter} indexHref={index} />

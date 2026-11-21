@@ -125,6 +125,7 @@ export default function EditorEmail({
 				subject={email.subject}
 				previewText={email.previewText}
 				newsletterId={newsletter._id}
+				language={newsletter.language}
 				contactFields={fields}
 			/>
 		</>

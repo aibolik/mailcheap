@@ -6,7 +6,8 @@ import { countReaders, getArchiveIssue, getArchiveNewsletter } from "@/lib/archi
 import { getArchiveUrls } from "@/lib/archive-hosts";
 import { getIssueDate } from "@/lib/archive-issues";
 import { SHARE_IMAGE_SIZE } from "@/lib/archive-seo";
-import { formatDate, formatNumber } from "@/lib/format";
+import { formatDate } from "@/lib/format";
+import { readerCopy } from "@/lib/reader-copy";
 import { readLogo } from "@/lib/og-image";
 import { getIssueBackground, getShareCardColors } from "@/lib/share-card";
 import { THEME_MODES, resolveTheme } from "@/lib/themes";
@@ -35,7 +36,11 @@ export async function GET(request, { params }) {
 
 	const [logo, readers] = await Promise.all([readLogo(newsletter.imageUrl), countReaders(newsletter)]);
 	const domain = new URL(getArchiveUrls(newsletter).siteIndex).host;
-	const footer = issue ? formatDate(getIssueDate(issue)) : readers >= 100 ? `Join ${formatNumber(readers)} readers` : "";
+	const footer = issue
+		? formatDate(getIssueDate(issue), undefined, newsletter.language)
+		: readers >= 100
+			? readerCopy(newsletter.language).archive.joinReaders(readers)
+			: "";
 	const theme = resolveTheme(newsletter.theme);
 	const mode = THEME_MODES.includes(askedMode) ? askedMode : theme.mode;
 

@@ -47,7 +47,7 @@ export default function ListCleanupPage() {
 
 			<h2 id="last-chance-email">The last-chance email</h2>
 			<p>
-				MailCheap&apos;s own last-chance email asks whether they still want your newsletter, and follows its name. On the{" "}
+				MailCheap&apos;s own last-chance email asks whether they still want your newsletter, and follows its name and language. On the{" "}
 				<LinkApp href="/newsletters/cleanup">List cleanup page</LinkApp>, you can write your own subject, preview text and content
 				instead, in your words or your readers&apos; language, in the same <Link href={getHelpHref("writing", "editor")}>editor</Link>{" "}
 				as your issues. Keep its button: each contact gets their own link in it, and its toolbar says Keeps them on your list. If

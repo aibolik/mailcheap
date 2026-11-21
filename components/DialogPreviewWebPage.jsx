@@ -12,6 +12,8 @@ import FrameIssue from "@/components/FrameIssue";
 import { ScopeTheme } from "@/components/PreviewTheme";
 import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from "@/components/ui/dialog";
 import { forwardEscape, openLinksOutside } from "@/lib/email-preview";
+import { readerCopy } from "@/lib/reader-copy";
+import { getReaderLanguage } from "@/lib/reader-language";
 import { getThemeStyleSheet, resolveTheme } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 
@@ -197,15 +199,16 @@ function FramePage({ newsletter, className, ...page }) {
 // The archive's issue page (app/archive/[slug]/p/[post]/page.js) in its own classes: its header, the issue's title,
 // description, author and date, its content and the newsletter's pitch.
 function PageIssue({ newsletter, title, description, author, byline, date, body }) {
+	const copy = readerCopy(newsletter.language);
 	return (
-		<div className="flex min-h-dvh flex-col">
+		<div lang={getReaderLanguage(newsletter)} className="flex min-h-dvh flex-col">
 			<header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-md">
 				<div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-5">
 					<span className="flex min-w-0 items-center gap-2.5 font-medium tracking-tight [font-family:var(--theme-font-heading)]">
 						<AvatarNewsletter newsletter={newsletter} size={28} />
 						<span className="truncate">{newsletter.name}</span>
 					</span>
-					<ButtonMock>Subscribe</ButtonMock>
+					<ButtonMock>{copy.archive.subscribe}</ButtonMock>
 				</div>
 			</header>
 			<main className="flex-1">
@@ -215,14 +218,14 @@ function PageIssue({ newsletter, title, description, author, byline, date, body 
 						{description && <p className="mt-4 text-xl text-pretty text-muted-foreground">{description}</p>}
 						<div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground tabular-nums">
 							{byline ? (
-								<BylineAuthor author={byline} />
+								<BylineAuthor author={byline} language={newsletter.language} />
 							) : (
 								<span className="flex min-w-0 items-center gap-2 font-medium text-foreground">
 									<AvatarNewsletter newsletter={author} size={24} className="rounded-full" />
 									<span className="truncate">{author.name}</span>
 								</span>
 							)}
-							{date && <BadgeDate date={date} />}
+							{date && <BadgeDate date={date} language={newsletter.language} />}
 						</div>
 					</header>
 					{body.kind === "article" ? (
@@ -237,8 +240,8 @@ function PageIssue({ newsletter, title, description, author, byline, date, body 
 						<p className="text-2xl font-theme-heading text-balance">{newsletter.name}</p>
 						{newsletter.description && <p className="max-w-md text-pretty text-muted-foreground">{newsletter.description}</p>}
 						<div className="flex w-full max-w-sm items-center gap-1.5 rounded-xl bg-background p-1.5 shadow-border">
-							<span className="min-w-0 flex-1 truncate px-2.5 text-left text-sm text-muted-foreground">you@example.com</span>
-							<ButtonMock>Subscribe</ButtonMock>
+							<span className="min-w-0 flex-1 truncate px-2.5 text-left text-sm text-muted-foreground">{copy.signup.placeholder}</span>
+							<ButtonMock>{copy.archive.subscribe}</ButtonMock>
 						</div>
 					</div>
 				</section>
