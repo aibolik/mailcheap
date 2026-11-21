@@ -8,7 +8,6 @@ const WHERE = {
 	"footer.readOnline": "Link to the issue's page at the top of an email",
 	"footer.readOnlineLine": "Plain-text email, above the body",
 	"footer.by": "Author byline in an email",
-	"confirmation.fallbackName": "Built-in confirmation email, when the newsletter has no name",
 	"confirmation.subject": "Built-in confirmation email subject",
 	"confirmation.preview": "Built-in confirmation email preview text",
 	"confirmation.headline": "Built-in confirmation email, bold first line",
@@ -16,14 +15,12 @@ const WHERE = {
 	"confirmation.nextStep": "Built-in confirmation email, the line after the intro",
 	"confirmation.button": "Built-in confirmation email button, and the confirm page button",
 	"confirmation.ignore": "Built-in confirmation email, last line",
-	"lastChance.fallbackName": "Built-in last-chance email, when the newsletter has no name",
 	"lastChance.subject": "Built-in last-chance email subject",
 	"lastChance.preview": "Built-in last-chance email preview text",
 	"lastChance.headline": "Built-in last-chance email, bold first line",
 	"lastChance.body": "Built-in last-chance email body",
 	"lastChance.button": "Built-in last-chance email button, and the keep page button",
 	"lastChance.goodbye": "Built-in last-chance email, last line",
-	"welcome.fallbackName": "Welcome email prefill, when the newsletter has no name",
 	"welcome.subject": "Welcome email prefill, only while the editor is still empty",
 	"welcome.thanks": "Welcome email prefill, first paragraph",
 	"welcome.next": "Welcome email prefill, second paragraph",
@@ -137,12 +134,36 @@ function leaves(value, prefix = "", out = []) {
 	return out;
 }
 
+// These take a newsletter name. The review also needs the sentence used when there is no name, because Russian
+// can't drop one noun into every case.
+const NAMED = new Set([
+	"footer.reason",
+	"confirmation.subject",
+	"confirmation.preview",
+	"confirmation.intro",
+	"lastChance.subject",
+	"lastChance.headline",
+	"lastChance.goodbye",
+	"welcome.subject",
+	"welcome.thanks",
+	"unsubscribe.confirmTitle",
+	"unsubscribe.errorBody",
+	"unsubscribe.doneBody",
+]);
+
 function show(key, value) {
 	if (typeof value !== "function") return value;
-	if (key.endsWith("viewLabel")) return value(2);
+	const sample = sampleOf(key, value);
+	if (!NAMED.has(key)) return sample;
+	const none = value("");
+	return none && none !== sample ? `${sample} · no name: ${none}` : sample;
+}
+
+function sampleOf(key, value) {
+	if (key.endsWith("viewLabel")) return [1, 2, 5, 21].map((n) => `${n}${value(n)}`).join(", ");
 	if (key.endsWith("humansRead")) return value("1,250", 1250);
-	if (key.endsWith("joinReaders") || key.endsWith("joinLine")) return value(120);
-	if (key.endsWith("issueCount")) return value(3);
+	if (key.endsWith("joinReaders") || key.endsWith("joinLine")) return [1, 2, 5, 21].map((n) => value(n)).join(", ");
+	if (key.endsWith("issueCount")) return [1, 2, 5, 21].map((n) => value(n)).join(", ");
 	if (key.endsWith("didYouMean")) return value("gmail.com");
 	if (key.endsWith("openInbox")) return value("Gmail");
 	if (key.endsWith("backTo")) return value("example.com");
@@ -169,9 +190,11 @@ const lines = [
 	"",
 	"Draft for review. English is what MailCheap already says. Russian is a draft in formal вы. Change the Russian in `lib/locales/ru.js`.",
 	"",
-	"Dates and numbers are not in this table. English keeps the en-US formats the app already uses (`Oct 7, 2026`, `April 12, 1991`, `1,250`). Russian uses `ru-RU` for the same values. Counts on the website use Russian plural forms (выпуск, читатель, просмотр).",
+	"Dates in emails and on the website are not rows here. English keeps the en-US formats the app already uses (`Oct 7, 2026`, `April 12, 1991`, `1,250`). Russian uses `ru-RU`, whose thousands separator is a no-break space (`1 250`).",
 	"",
-	"Examples below use the name Field notes, the address https://example.com/unsubscribe, and a small count, where a string takes one.",
+	"Counts use one, few and many (1 выпуск, 2 выпуска, 5 выпусков; 21 follows one). A missing newsletter name is a full sentence in the case that sentence needs, shown after «no name».",
+	"",
+	"Examples below use the name Field notes and the address https://example.com/unsubscribe, where a string takes one.",
 	"",
 	"| Key | Where it appears | English | Russian draft |",
 	"| --- | --- | --- | --- |",

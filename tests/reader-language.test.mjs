@@ -71,9 +71,15 @@ test("the built-in confirmation and last-chance emails follow the language, and 
 	const russian = getConfirmationContent({ name: "Field notes", language: "ru" });
 	assert.equal(russian.subject, "Подтвердите подписку на Field notes");
 	assert.ok(russian.html.includes("Одно нажатие — и вы подписаны."));
-	assert.ok(russian.html.includes("Вы попросили присылать Field notes."));
+	assert.ok(russian.html.includes("Вы подписались на Field notes."));
 	assert.ok(russian.html.includes(">Подтвердить подписку</a>"));
-	assert.ok(russian.html.includes("Не подписывались?"));
+	assert.ok(russian.html.includes("Не подписывались? Просто проигнорируйте это письмо — больше мы не напишем."));
+	const unnamed = getConfirmationContent({ language: "ru" });
+	assert.equal(unnamed.subject, "Подтвердите подписку на рассылку");
+	assert.equal(unnamed.previewText, "Одно нажатие — и вы подписаны. Пока вы не подтвердите, рассылка вам не придёт.");
+	assert.ok(unnamed.html.includes("Вы подписались на рассылку."));
+	assert.equal(getConfirmationContent({}).subject, "Confirm your subscription to the newsletter");
+	assert.equal(getConfirmationContent({}).previewText, "One click and you're in. Until then, you won't get the newsletter.");
 
 	const own = { subject: "My subject", previewText: "Mine", format: "rich", html: '<div data-button=""><a href="{{confirm_url}}">Go</a></div>' };
 	const kept = getConfirmationContent({ name: "Field notes", language: "ru", confirmation: own });
@@ -88,9 +94,17 @@ test("the built-in confirmation and last-chance emails follow the language, and 
 	assert.ok(last.html.includes(">Yes, keep sending it</a>"));
 	assert.ok(last.html.includes("If I don't hear from you, this is the last Field notes email you'll get."));
 	const lastRu = getLastChanceContent({ name: "Field notes", language: "ru" });
-	assert.equal(lastRu.subject, "Вы ещё хотите получать Field notes?");
+	assert.equal(lastRu.subject, "Продолжать присылать Field notes?");
+	assert.equal(lastRu.previewText, "Нажмите кнопку — и письма будут приходить дальше.");
+	assert.ok(lastRu.html.includes("Вы давно не открывали наши письма, поэтому уточняем, прежде чем перестать их присылать."));
+	assert.ok(lastRu.html.includes("Если вы не нажмёте кнопку, это письмо Field notes будет последним."));
 	assert.ok(lastRu.html.includes(">Да, присылайте дальше</a>"));
-	assert.ok(lastRu.html.includes("Вы давно её не открывали"));
+	const lastUnnamed = getLastChanceContent({ language: "ru" });
+	assert.equal(lastUnnamed.subject, "Продолжать присылать рассылку?");
+	assert.ok(lastUnnamed.html.includes("Если вы не нажмёте кнопку, это письмо будет последним."));
+	assert.ok(!lastUnnamed.html.includes("эту рассылку"));
+	assert.equal(getLastChanceContent({}).subject, "Do you still want this newsletter?");
+	assert.ok(getLastChanceContent({}).html.includes("If I don't hear from you, this is the last this newsletter email you'll get."));
 	const ownLast = { subject: "Stay?", previewText: "", format: "rich", html: '<div data-button=""><a href="{{keep_url}}">Stay</a></div>' };
 	assert.equal(getLastChanceContent({ name: "Field notes", language: "ru", lastChance: ownLast }).subject, "Stay?");
 });
@@ -104,6 +118,11 @@ test("the welcome email's empty starting text follows the language, and a saved 
 	const russian = prefillWelcome(empty, { name: "Field notes", language: "ru" });
 	assert.equal(russian.subject, "Добро пожаловать в Field notes");
 	assert.ok(russian.content.includes("Спасибо, что подписались на Field notes."));
+	assert.ok(russian.content.includes("А если хотите поздороваться, просто ответьте на это письмо."));
+	const welcomeNone = prefillWelcome(empty, { language: "ru" });
+	assert.equal(welcomeNone.subject, "Добро пожаловать в рассылку");
+	assert.ok(welcomeNone.content.includes("Спасибо, что подписались на рассылку."));
+	assert.equal(prefillWelcome(empty, {}).subject, "Welcome to the newsletter");
 	const saved = { subject: "Hi there", previewText: "", format: "rich", content: "<p>My own welcome.</p>" };
 	assert.deepEqual(prefillWelcome(saved, { name: "Field notes", language: "ru" }), saved);
 });
@@ -125,7 +144,7 @@ test("the unsubscribe page is English unless the newsletter is Russian", () => {
 	const russian = page("confirm", "ru");
 	assert.match(russian, /lang="ru"/);
 	assert.match(russian, /Отписаться от Field notes\?/);
-	assert.match(russian, /Вы больше не будете получать её письма\./);
+	assert.match(russian, /Вы больше не будете получать эти письма\./);
 	assert.match(russian, />Отписаться</);
 	assert.match(page("done", "ru"), /Вы отписались/);
 	assert.match(page("invalid", "ru"), /Эта ссылка не работает/);
@@ -136,7 +155,8 @@ test("the signup form's built-in words follow the language, and words the owner 
 	assert.equal(toSignupFormSettings(undefined).buttonText, "Subscribe");
 	assert.equal(toSignupFormSettings(undefined).placeholder, "you@example.com");
 	assert.equal(toSignupFormSettings({ buttonText: "Subscribe", placeholder: "you@example.com" }, { language: "ru" }).buttonText, "Подписаться");
-	assert.equal(toSignupFormSettings({ buttonText: "Subscribe", placeholder: "you@example.com" }, { language: "ru" }).placeholder, "вы@example.com");
+	assert.equal(toSignupFormSettings({ buttonText: "Subscribe", placeholder: "you@example.com" }, { language: "ru" }).placeholder, "name@example.com");
+	assert.equal(toSignupFormSettings({ buttonText: "Subscribe", placeholder: "вы@example.com" }, { language: "ru" }).placeholder, "name@example.com");
 	assert.equal(toSignupFormSettings({ buttonText: "Join us", placeholder: "work@example.com" }, { language: "ru" }).buttonText, "Join us");
 	assert.equal(toSignupFormSettings({ buttonText: "Join us", placeholder: "work@example.com" }, { language: "ru" }).placeholder, "work@example.com");
 
@@ -158,7 +178,7 @@ test("the signup form's built-in words follow the language, and words the owner 
 	});
 	assert.match(russian, /<html lang="ru">/);
 	assert.ok(russian.includes(">Подписаться</button>"));
-	assert.ok(russian.includes('placeholder="вы@example.com"'));
+	assert.ok(russian.includes('placeholder="name@example.com"'));
 	assert.ok(russian.includes("Вы подписаны"));
 	assert.ok(!russian.includes(">Subscribe</button>"));
 
@@ -186,6 +206,41 @@ test("the signup form's built-in words follow the language, and words the owner 
 	const doneRu = renderDonePage({ newsletter: { name: "Field notes", theme: {}, language: "ru" }, done: { result: "pending" } });
 	assert.match(doneRu, /<html lang="ru">/);
 	assert.ok(doneRu.includes("Проверьте почту"));
+});
+
+test("Russian counts take one, few and many, and group thousands with a no-break space", () => {
+	const nbsp = "\u00a0";
+	assert.equal(ru.archive.viewLabel(1), " просмотр");
+	assert.equal(ru.archive.viewLabel(2), " просмотра");
+	assert.equal(ru.archive.viewLabel(4), " просмотра");
+	assert.equal(ru.archive.viewLabel(5), " просмотров");
+	assert.equal(ru.archive.viewLabel(11), " просмотров");
+	assert.equal(ru.archive.viewLabel(21), " просмотр");
+	assert.equal(ru.archive.viewLabel(22), " просмотра");
+	assert.equal(ru.archive.issueCount(1), "1 выпуск");
+	assert.equal(ru.archive.issueCount(2), "2 выпуска");
+	assert.equal(ru.archive.issueCount(5), "5 выпусков");
+	assert.equal(ru.archive.issueCount(21), "21 выпуск");
+	assert.equal(ru.archive.joinReaders(1), "Уже 1 читатель");
+	assert.equal(ru.archive.joinReaders(2), "Уже 2 читателя");
+	assert.equal(ru.archive.joinReaders(5), "Уже 5 читателей");
+	assert.equal(ru.archive.joinReaders(21), "Уже 21 читатель");
+	assert.equal(ru.archive.joinReaders(1250), `Уже 1${nbsp}250 читателей`);
+	assert.equal(ru.archive.humansRead("1,250", 1), "1 человек прочитал этот выпуск");
+	assert.equal(ru.archive.humansRead("1,250", 2), "2 человека прочитали этот выпуск");
+	assert.equal(ru.archive.humansRead("1,250", 5), "5 человек прочитали этот выпуск");
+	assert.equal(ru.archive.humansRead("1,250", 21), "21 человек прочитал этот выпуск");
+	assert.equal(ru.archive.humansRead("1,250", 22), "22 человека прочитали этот выпуск");
+	assert.equal(ru.archive.humansRead("1,250", 1250), `1${nbsp}250 человек прочитали этот выпуск`);
+	assert.equal(ru.keep.formInvalid(""), "Возможно, ссылке больше 90 дней или вы уже отписались. Подпишитесь снова, чтобы получать рассылку.");
+	assert.equal(ru.keep.formInvalid("Field notes"), "Возможно, ссылке больше 90 дней или вы уже отписались. Подпишитесь снова, чтобы получать Field notes.");
+	assert.equal(en.archive.viewLabel(1), " view");
+	assert.equal(en.archive.viewLabel(2), " views");
+	assert.equal(en.archive.humansRead("1,250", 1250), "1,250 humans read this");
+	assert.equal(en.archive.humansRead("1", 1), "1 human read this");
+	assert.equal(en.archive.joinReaders(120), "Join 120 readers");
+	assert.equal(en.archive.issueCount(1), "1 issues");
+	assert.equal(en.keep.formInvalid("Field notes"), "It may be older than 90 days, or you unsubscribed. Sign up again to get Field notes.");
 });
 
 test("English dates and numbers stay as they were, and Russian uses its own", () => {

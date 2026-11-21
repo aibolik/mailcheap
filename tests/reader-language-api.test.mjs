@@ -109,7 +109,7 @@ test("previewing a newsletter email sends nothing", async () => {
 	assert.equal(welcome.isBuiltIn, true);
 	assert.equal(welcome.subject, "Добро пожаловать в previewlanguage");
 	const last = await callTool(user.key, "preview_newsletter_email", { id: user.newsletterId, kind: "lastChance" });
-	assert.equal(last.subject, "Вы ещё хотите получать previewlanguage?");
+	assert.equal(last.subject, "Продолжать присылать previewlanguage?");
 	const bad = await callApi("GET", `/api/v1/newsletters/${user.newsletterId}/email-preview?kind=nope`, { key: user.key });
 	assert.equal(bad.status, 400);
 	assert.equal(bad.body.error.code, "validation_failed");
